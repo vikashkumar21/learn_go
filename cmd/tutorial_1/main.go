@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -61,6 +62,9 @@ func main() {
 	fmt.Println(calculateArea(cir))
 	pointerConcept()
 	goRoutineConcept()
+	channelConcept()
+	chickenChannelExample()
+	genericsConcept()
 }
 
 func intDivision(numerator, denominator int) (int, int, error) {
@@ -214,4 +218,84 @@ func dbCall(i int) {
 	result = append(result, dbData[i])
 	mutex.Unlock()
 	wg.Done()
+}
+
+func channelConcept() {
+	var ch = make(chan int, 5)
+	go processChan(ch)
+	for i := range ch {
+		fmt.Printf("read channel: %v\n", i)
+		time.Sleep(time.Second * 1)
+	}
+}
+
+func processChan(ch chan int) {
+	defer close(ch)
+	for i := 0; i < 5; i++ {
+		ch <- i
+	}
+	fmt.Println("exiting from process...")
+}
+
+var MAX_CHICKEN_PRICE float32 = 5
+var MAX_TOFU_PRICE float32 = 3
+
+func chickenChannelExample() {
+	var chickenChannel = make(chan string)
+	var tofuChannel = make(chan string)
+	var websites = []string{"walmart.com", "costco.com", "wholefoods.com"}
+	for i := range websites {
+		go checkChickenPrices(websites[i], chickenChannel)
+		go checkTofuPrices(websites[i], tofuChannel)
+	}
+	sendMessage(chickenChannel, tofuChannel)
+}
+func checkTofuPrices(website string, tofuChannel chan string) {
+	for {
+		time.Sleep(time.Second * 1)
+		var tofuPrice = rand.Float32() * 20
+		if tofuPrice <= MAX_TOFU_PRICE {
+			tofuChannel <- website
+			break
+		}
+	}
+}
+func checkChickenPrices(website string, chickenChannel chan string) {
+	for {
+		time.Sleep(time.Second * 1)
+		var chickenPrice = rand.Float32() * 20
+		if chickenPrice <= MAX_CHICKEN_PRICE {
+			chickenChannel <- website
+			break
+		}
+	}
+}
+func sendMessage(chickenChannel, tofuChannel chan string) {
+	select {
+	case website := <-chickenChannel:
+		fmt.Printf("Found a deal on chicken at: %s\n", website)
+	case website := <-tofuChannel:
+		fmt.Printf("Found a deal on tofu at: %s\n", website)
+	}
+}
+
+func genericsConcept() {
+	var intSlice = []int{1, 2, 3}
+	var floatSlice = []float32{1, 2, 3}
+	fmt.Println(sumSlice[int](intSlice))
+	fmt.Println(sumSlice[float32](floatSlice))
+}
+
+func sumSlice[T int | float32](slice []T) T {
+	var sum T
+	for _, v := range slice {
+		sum += v
+	}
+	return sum
+}
+
+type car[T int | float32] struct {
+	carMake  string
+	carModel string
+	carPrice T
 }
